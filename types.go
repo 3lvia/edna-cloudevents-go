@@ -1,5 +1,9 @@
 package ednaevents
 
+type Serializable interface {
+	ToMap() map[string]interface{}
+}
+
 // Config contains information needed to configure both the cloud events and the connection to Kafka.
 type Config struct {
 	// Broker the Kafka broker, often also called "bootstrap servers"
