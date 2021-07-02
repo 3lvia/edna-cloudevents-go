@@ -16,7 +16,7 @@ type handler struct {
 	config          *Config
 }
 
-func (h *handler) start(ch <-chan Message) {
+func (h *handler) start(ch <-chan *Message) {
 	for {
 		obj := <- ch
 		ce, err := h.getCloudEvent(obj)
@@ -26,7 +26,7 @@ func (h *handler) start(ch <-chan Message) {
 	}
 }
 
-func (h *handler) getCloudEvent(m Message) (cloudevents.Event, error) {
+func (h *handler) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	id := m.ID
 	if id == "" {
 		id = uuid.New().String()

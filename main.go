@@ -5,13 +5,6 @@ func StartProducer(ch <-chan *Message, opts ...Option) {
 	for _, opt := range opts {
 		opt(collector)
 	}
-}
-
-func StartConsumer(ch <-chan Message, schemaID int, opts ...Option) {
-	collector := &OptionsCollector{}
-	for _, opt := range opts {
-		opt(collector)
-	}
 
 	c := collector.config
 
@@ -21,7 +14,7 @@ func StartConsumer(ch <-chan Message, schemaID int, opts ...Option) {
 		password:        c.SchemaAPIPassword,
 	}
 
-	schemaReference, schema, err := sr.getSchema(schemaID)
+	schemaReference, schema, err := sr.getSchema(c.SchemaID)
 	if err != nil {
 		collector.logChannels.ErrorChan <- err
 		return
@@ -34,4 +27,13 @@ func StartConsumer(ch <-chan Message, schemaID int, opts ...Option) {
 	}
 
 	go h.start(ch)
+}
+
+func StartConsumer(ch <-chan Message, opts ...Option) {
+	collector := &OptionsCollector{}
+	for _, opt := range opts {
+		opt(collector)
+	}
+
+
 }

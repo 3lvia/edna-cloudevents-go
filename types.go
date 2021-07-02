@@ -42,6 +42,9 @@ type Config struct {
 
 	// SchemaAPIPassword is the password for the user of the schema API endpoint.
 	SchemaAPIPassword string
+
+	// SchemaID the id of the Avro schema
+	SchemaID int
 }
 
 // Message wraps an object to be put on a topic or consumed from it.
