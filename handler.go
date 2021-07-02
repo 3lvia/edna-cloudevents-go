@@ -19,13 +19,14 @@ type handler struct {
 func (h *handler) start(ch <-chan Message) {
 	for {
 		obj := <- ch
-		ce := h.getCloudEvent(obj)
+		ce, err := h.getCloudEvent(obj)
 
+		_ = err
 		_ = ce
 	}
 }
 
-func (h *handler) getCloudEvent(m Message) cloudevents.Event {
+func (h *handler) getCloudEvent(m Message) (cloudevents.Event, error) {
 	id := m.ID
 	if id == "" {
 		id = uuid.New().String()
@@ -44,7 +45,12 @@ func (h *handler) getCloudEvent(m Message) cloudevents.Event {
 	ce.SetType(h.config.Type)
 	ce.SetDataSchema(h.schemaReference)
 
-	ce.SetData(contentType, nil)
+	b, err := serialize(m.Payload, h.schema)
+	if err != nil {
+		return cloudevents.Event{}, err
+	}
 
-	return ce
+	ce.SetData(contentType, b)
+
+	return ce, nil
 }

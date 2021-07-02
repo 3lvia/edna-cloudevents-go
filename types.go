@@ -59,5 +59,5 @@ type Message struct {
 
 	// Payload is the actual entity- or time series event to be sent. This object will be serialized to using Avro and
 	// wrapped in a cloudevent before being queued.
-	Payload interface{}
+	Payload Serializable
 }
