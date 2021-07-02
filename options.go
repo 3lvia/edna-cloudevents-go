@@ -7,8 +7,9 @@ type Option func(collector *OptionsCollector)
 
 // OptionsCollector collects options
 type OptionsCollector struct {
-	config      *Config
-	logChannels telemetry.LogChannels
+	config       *Config
+	deserializer Deserializer
+	logChannels  telemetry.LogChannels
 }
 
 // WithConfig sets the configuration information.
@@ -22,5 +23,12 @@ func WithConfig(config *Config) Option {
 func WithLogChannels(lc telemetry.LogChannels) Option {
 	return func(collector *OptionsCollector) {
 		collector.logChannels = lc
+	}
+}
+
+// WithDeserializer sets
+func WithDeserializer(d Deserializer) Option {
+	return func(collector *OptionsCollector) {
+		collector.deserializer = d
 	}
 }

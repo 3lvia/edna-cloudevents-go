@@ -1,8 +1,14 @@
 package ednaevents
 
+// Serializable is an object that is meant to be serialized using the Avro format. In order for this to work the
+// object must be able to represent itself as a map.
 type Serializable interface {
+	// ToMap returns a map-based representation og the object
 	ToMap() map[string]interface{}
 }
+
+// Deserializer is able to take a Avro deserialized map as input and convert it to an object.
+type Deserializer func (m interface{}) (Serializable, error)
 
 // Config contains information needed to configure both the cloud events and the connection to Kafka.
 type Config struct {
