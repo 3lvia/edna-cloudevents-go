@@ -3,6 +3,7 @@ package ednaevents
 import (
 	"github.com/3lvia/telemetry-go"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 )
 
@@ -12,6 +13,7 @@ const (
 )
 
 type producer struct {
+	produceChannel  chan<- *kafka.Message
 	schema          string
 	schemaReference string
 	config          *Config
@@ -20,7 +22,7 @@ type producer struct {
 
 func (p *producer) start(ch <-chan *Message) {
 	for {
-		obj := <- ch
+		obj := <-ch
 		ce, err := p.getCloudEvent(obj)
 
 		if err != nil {
@@ -28,7 +30,13 @@ func (p *producer) start(ch <-chan *Message) {
 			continue
 		}
 
-		_ = ce
+		js, err := ce.MarshalJSON()
+		if err != nil {
+			p.logChannels.ErrorChan <- err
+			continue
+		}
+
+		p.produceChannel <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &p.config.Topic, Partition: kafka.PartitionAny}, Value: []byte(js)}
 	}
 }
 
