@@ -9,7 +9,7 @@ func Test_handler_getCloudEvent(t *testing.T) {
 		Type:              "no.elvia.kunde.customer",
 	}
 
-	h := &handler{
+	h := &producer{
 		schema:          schemaCustomer,
 		schemaReference: "http://schema.repo.com/kunde/customer",
 		config:          config,

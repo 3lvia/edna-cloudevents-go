@@ -1,6 +1,7 @@
 package ednaevents
 
 import (
+	"github.com/3lvia/telemetry-go"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 )
@@ -10,23 +11,28 @@ const (
 	contentType = "application/avro"
 )
 
-type handler struct {
+type producer struct {
 	schema          string
 	schemaReference string
 	config          *Config
+	logChannels     telemetry.LogChannels
 }
 
-func (h *handler) start(ch <-chan *Message) {
+func (p *producer) start(ch <-chan *Message) {
 	for {
 		obj := <- ch
-		ce, err := h.getCloudEvent(obj)
+		ce, err := p.getCloudEvent(obj)
 
-		_ = err
+		if err != nil {
+			p.logChannels.ErrorChan <- err
+			continue
+		}
+
 		_ = ce
 	}
 }
 
-func (h *handler) getCloudEvent(m *Message) (cloudevents.Event, error) {
+func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	id := m.ID
 	if id == "" {
 		id = uuid.New().String()
@@ -41,11 +47,11 @@ func (h *handler) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	}
 
 	ce.SetSpecVersion(specVersion)
-	ce.SetSource(h.config.Source)
-	ce.SetType(h.config.Type)
-	ce.SetDataSchema(h.schemaReference)
+	ce.SetSource(p.config.Source)
+	ce.SetType(p.config.Type)
+	ce.SetDataSchema(p.schemaReference)
 
-	b, err := serialize(m.Payload, h.schema)
+	b, err := serialize(m.Payload, p.schema)
 	if err != nil {
 		return cloudevents.Event{}, err
 	}

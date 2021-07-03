@@ -20,10 +20,11 @@ func StartProducer(ch <-chan *Message, opts ...Option) {
 		return
 	}
 
-	h := &handler{
+	h := &producer{
 		schema:          schema,
 		schemaReference: schemaReference,
 		config:          c,
+		logChannels:     collector.logChannels,
 	}
 
 	go h.start(ch)
