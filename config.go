@@ -7,6 +7,15 @@ import (
 	"strconv"
 )
 
+func ConfigFromEnvVars() (*Config, error) {
+	c := &Config{}
+	err := c.load()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 // Config contains information needed to configure both the cloud events and the connection to Kafka.
 type Config struct {
 	// Broker the Kafka broker, often also called "bootstrap servers"
@@ -44,8 +53,8 @@ type Config struct {
 	SchemaID int
 }
 
-// Load loads this instance with values from environment variables.
-func (c *Config) Load() error {
+// load loads this instance with values from environment variables.
+func (c *Config) load() error {
 	c.Broker = os.Getenv("KAFKA_BROKER")
 	if c.Broker == "" {
 		return errors.New("missing env var KAFKA_BROKER")
