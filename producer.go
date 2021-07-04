@@ -1,6 +1,7 @@
 package ednaevents
 
 import (
+	"fmt"
 	"github.com/3lvia/telemetry-go"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -21,7 +22,7 @@ type producer struct {
 }
 
 func (p *producer) start(ch <-chan *Message) {
-	kProducer, err := kafka.NewProducer(kConfig)
+	kProducer, err := kafka.NewProducer(p.kConfig)
 	defer kProducer.Close()
 	if err != nil {
 		p.logChannels.ErrorChan <- err
@@ -29,7 +30,7 @@ func (p *producer) start(ch <-chan *Message) {
 	}
 
 	go func() {
-		for e := range p.Events() {
+		for e := range kProducer.Events() {
 			switch ev := e.(type) {
 			case *kafka.Message:
 				m := ev
