@@ -6,11 +6,19 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
+	"log"
+	"time"
 )
 
 const (
 	specVersion = "1.0"
 	contentType = "application/avro"
+
+	metricCountDelivered = "kafka_delivered"
+	metricCountUndelivered = "kafka_undelivered"
+	metricCountIgnored = "kafka_ignored"
+
+	signaledDateFormat = "2006-01-02"
 )
 
 type producer struct {
@@ -35,15 +43,34 @@ func (p *producer) start(ch <-chan *Message) {
 			case *kafka.Message:
 				m := ev
 				if m.TopicPartition.Error != nil {
-					fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
+					p.logChannels.CountChan <- telemetry.Metric{
+						Name:        metricCountUndelivered,
+						Value:       1,
+						ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": *m.TopicPartition.Topic},
+					}
+					log.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
 				} else {
-					fmt.Printf("Delivered message to topic %s [%d] at offset %v\n",
+					p.logChannels.CountChan <- telemetry.Metric{
+						Name:        metricCountDelivered,
+						Value:       1,
+						ConstLabels: map[string]string{
+							"day": dayKey(time.Now()),
+							"topic": *m.TopicPartition.Topic,
+							"partition": fmt.Sprintf("%d", m.TopicPartition.Partition),
+						},
+					}
+					log.Printf("Delivered message to topic %s [%d] at offset %v\n",
 						*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
 				}
 				return
 
 			default:
-				fmt.Printf("Ignored event: %s\n", ev)
+				p.logChannels.CountChan <- telemetry.Metric{
+					Name:        metricCountIgnored,
+					Value:       1,
+					ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": p.config.Topic},
+				}
+				log.Printf("Ignored event: %s\n", ev)
 			}
 		}
 	}()
@@ -63,7 +90,7 @@ func (p *producer) start(ch <-chan *Message) {
 			continue
 		}
 
-		kProducer.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &p.config.Topic, Partition: kafka.PartitionAny}, Value: []byte(js)}
+		kProducer.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &p.config.Topic, Partition: kafka.PartitionAny}, Value: js}
 	}
 }
 
@@ -94,4 +121,8 @@ func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	ce.SetData(contentType, b)
 
 	return ce, nil
+}
+
+func dayKey(d time.Time) string {
+	return d.Format(signaledDateFormat)
 }
