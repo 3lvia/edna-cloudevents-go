@@ -59,6 +59,10 @@ type Config struct {
 
 // load loads this instance with values from environment variables.
 func (c *Config) load() error {
+	c.ClientID = os.Getenv("CLIENT_ID")
+	if c.ClientID == "" {
+		return errors.New("missing env var CLIENT_ID")
+	}
 	c.Broker = os.Getenv("KAFKA_BROKER")
 	if c.Broker == "" {
 		return errors.New("missing env var KAFKA_BROKER")
