@@ -18,6 +18,10 @@ func ConfigFromEnvVars() (*Config, error) {
 
 // Config contains information needed to configure both the cloud events and the connection to Kafka.
 type Config struct {
+	// ClientID is the unique ID of the client. This value should match the name of the deployment on Kubernetes
+	// (if running on Kubernetes).
+	ClientID string
+
 	// Broker the Kafka broker, often also called "bootstrap servers"
 	Broker string
 

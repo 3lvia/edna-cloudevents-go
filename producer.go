@@ -1,12 +1,17 @@
 package ednaevents
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 	"github.com/3lvia/telemetry-go"
+	"github.com/Shopify/sarama"
+	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/google/uuid"
 	"log"
+	"os"
+
+	//"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -22,58 +27,48 @@ const (
 )
 
 type producer struct {
-	kConfig         *kafka.ConfigMap
+	//kConfig         *kafka.ConfigMap
 	schema          string
 	schemaReference string
 	config          *Config
 	logChannels     telemetry.LogChannels
 }
 
-func (p *producer) start(ch <-chan *Message) {
-	kProducer, err := kafka.NewProducer(p.kConfig)
-	defer kProducer.Close()
+func (p *producer) start(ctx context.Context, ch <-chan *Message) {
+	saramaConfig := sarama.NewConfig()
+
+	saramaConfig.Version = sarama.V2_8_0_0
+	saramaConfig.ClientID = p.config.ClientID
+
+	saramaConfig.Net.SASL.Enable = true
+	saramaConfig.Net.SASL.User = p.config.Username
+	saramaConfig.Net.SASL.Password = p.config.Password
+	saramaConfig.Net.SASL.Mechanism = "PLAIN"
+
+	saramaConfig.Net.TLS.Enable = true
+
+	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+
+	//kConfig := &kafka.ConfigMap{
+	//	"bootstrap.servers": c.Broker,
+	//	"sasl.username":     c.Username,
+	//	"sasl.password":     c.Password,
+	//	"sasl.mechanism":    "PLAIN",
+	//	"security.protocol": "SASL_SSL",
+	//}
+
+	sender, err := kafka_sarama.NewSender([]string{p.config.Broker}, saramaConfig, p.config.Topic)
 	if err != nil {
 		p.logChannels.ErrorChan <- err
 		return
 	}
+	defer sender.Close(ctx)
 
-	go func() {
-		for e := range kProducer.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				m := ev
-				if m.TopicPartition.Error != nil {
-					p.logChannels.CountChan <- telemetry.Metric{
-						Name:        metricCountUndelivered,
-						Value:       1,
-						ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": *m.TopicPartition.Topic},
-					}
-					log.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
-				} else {
-					p.logChannels.CountChan <- telemetry.Metric{
-						Name:        metricCountDelivered,
-						Value:       1,
-						ConstLabels: map[string]string{
-							"day": dayKey(time.Now()),
-							"topic": *m.TopicPartition.Topic,
-							"partition": fmt.Sprintf("%d", m.TopicPartition.Partition),
-						},
-					}
-					log.Printf("Delivered message to topic %s [%d] at offset %v\n",
-						*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
-				}
-				return
-
-			default:
-				p.logChannels.CountChan <- telemetry.Metric{
-					Name:        metricCountIgnored,
-					Value:       1,
-					ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": p.config.Topic},
-				}
-				log.Printf("Ignored event: %s\n", ev)
-			}
-		}
-	}()
+	client, err := cloudevents.NewClient(sender, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
+	if err != nil {
+		p.logChannels.ErrorChan <- err
+		return
+	}
 
 	for {
 		obj := <-ch
@@ -84,13 +79,27 @@ func (p *producer) start(ch <-chan *Message) {
 			continue
 		}
 
-		js, err := ce.MarshalJSON()
-		if err != nil {
-			p.logChannels.ErrorChan <- err
+		result := client.Send(ctx, ce)
+
+		if result == nil {
+			p.logChannels.CountChan <- telemetry.Metric{
+				Name:  metricCountDelivered,
+				Value: 1,
+				ConstLabels: map[string]string{
+					"day": dayKey(time.Now()),
+				},
+			}
 			continue
 		}
 
-		kProducer.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &p.config.Topic, Partition: kafka.PartitionAny}, Value: js}
+		p.logChannels.ErrorChan <- result
+		p.logChannels.CountChan <- telemetry.Metric{
+			Name:        metricCountUndelivered,
+			Value:       1,
+			ConstLabels: map[string]string{
+				"day": dayKey(time.Now()),
+			},
+		}
 	}
 }
 
@@ -113,12 +122,18 @@ func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	ce.SetType(p.config.Type)
 	ce.SetDataSchema(p.schemaReference)
 
-	b, err := serialize(m.Payload, p.schema)
+	//b, err := serialize(m.Payload, p.schema)
+	//if err != nil {
+	//	return cloudevents.Event{}, err
+	//}
+
+	b, err := json.Marshal(m.Payload)
 	if err != nil {
-		return cloudevents.Event{}, err
+		return ce, err
 	}
 
-	ce.SetData(contentType, b)
+	//ce.SetData(contentType, b)
+	ce.SetData("application/json", b)
 
 	return ce, nil
 }

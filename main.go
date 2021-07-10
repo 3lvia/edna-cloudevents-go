@@ -1,8 +1,10 @@
 package ednaevents
 
-import "github.com/confluentinc/confluent-kafka-go/kafka"
+import "context"
 
-func StartProducer(ch <-chan *Message, opts ...Option) {
+//import "github.com/confluentinc/confluent-kafka-go/kafka"
+
+func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
 		opt(collector)
@@ -22,23 +24,23 @@ func StartProducer(ch <-chan *Message, opts ...Option) {
 		return
 	}
 
-	kConfig := &kafka.ConfigMap{
-		"bootstrap.servers": c.Broker,
-		"sasl.username":     c.Username,
-		"sasl.password":     c.Password,
-		"sasl.mechanism":    "PLAIN",
-		"security.protocol": "SASL_SSL",
-	}
+	//kConfig := &kafka.ConfigMap{
+	//	"bootstrap.servers": c.Broker,
+	//	"sasl.username":     c.Username,
+	//	"sasl.password":     c.Password,
+	//	"sasl.mechanism":    "PLAIN",
+	//	"security.protocol": "SASL_SSL",
+	//}
 
-	h := &producer{
-		kConfig:         kConfig,
+	p := &producer{
+		//kConfig:         kConfig,
 		schema:          schema,
 		schemaReference: schemaReference,
 		config:          c,
 		logChannels:     collector.logChannels,
 	}
 
-	go h.start(ch)
+	go p.start(ctx, ch)
 }
 
 func StartConsumer(ch <-chan Message, opts ...Option) {
