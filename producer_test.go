@@ -72,10 +72,11 @@ func Test_producer_start(t *testing.T) {
 	logChannels := telemetry.Start(ctx, telemetry.Empty(), telemetry.WithCapture(capture))
 
 	config := &Config{
+		ClientID:          "core.vault-audit-processor",
 		Broker:            "pkc-lq8gm.westeurope.azure.confluent.cloud:9092",
 		Topic:             "heitmann.test",
 		Username:          "USER",
-		Password:          "SECRET",
+		Password:          "PASSWORD",
 		Source:            "http://elvia.no/dp/vault",
 		Type:              "no.elvia.dp.auditlogentry",
 		SchemaAPIEndpoint: "",

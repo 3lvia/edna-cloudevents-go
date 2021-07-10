@@ -7,6 +7,9 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"log"
+	"os"
+
 	//"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 	"time"
@@ -32,56 +35,19 @@ type producer struct {
 }
 
 func (p *producer) start(ctx context.Context, ch <-chan *Message) {
-	//kProducer, err := kafka.NewProducer(p.kConfig)
-	//defer kProducer.Close()
-	//if err != nil {
-	//	p.logChannels.ErrorChan <- err
-	//	return
-	//}
-
-	//go func() {
-	//	for e := range kProducer.Events() {
-	//		switch ev := e.(type) {
-	//		case *kafka.Message:
-	//			m := ev
-	//			if m.TopicPartition.Error != nil {
-	//				p.logChannels.CountChan <- telemetry.Metric{
-	//					Name:        metricCountUndelivered,
-	//					Value:       1,
-	//					ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": *m.TopicPartition.Topic},
-	//				}
-	//				log.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
-	//			} else {
-	//				p.logChannels.CountChan <- telemetry.Metric{
-	//					Name:        metricCountDelivered,
-	//					Value:       1,
-	//					ConstLabels: map[string]string{
-	//						"day": dayKey(time.Now()),
-	//						"topic": *m.TopicPartition.Topic,
-	//						"partition": fmt.Sprintf("%d", m.TopicPartition.Partition),
-	//					},
-	//				}
-	//				log.Printf("Delivered message to topic %s [%d] at offset %v\n",
-	//					*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
-	//			}
-	//			return
-	//
-	//		default:
-	//			p.logChannels.CountChan <- telemetry.Metric{
-	//				Name:        metricCountIgnored,
-	//				Value:       1,
-	//				ConstLabels: map[string]string{"day": dayKey(time.Now()), "topic": p.config.Topic},
-	//			}
-	//			log.Printf("Ignored event: %s\n", ev)
-	//		}
-	//	}
-	//}()
-
 	saramaConfig := sarama.NewConfig()
+
 	saramaConfig.Version = sarama.V2_8_0_0
+	saramaConfig.ClientID = p.config.ClientID
+
+	saramaConfig.Net.SASL.Enable = true
 	saramaConfig.Net.SASL.User = p.config.Username
 	saramaConfig.Net.SASL.Password = p.config.Password
 	saramaConfig.Net.SASL.Mechanism = "PLAIN"
+
+	saramaConfig.Net.TLS.Enable = true
+
+	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 
 	//kConfig := &kafka.ConfigMap{
 	//	"bootstrap.servers": c.Broker,
@@ -114,24 +80,26 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 		}
 
 		result := client.Send(ctx, ce)
-		_ = result
 
+		if result == nil {
+			p.logChannels.CountChan <- telemetry.Metric{
+				Name:  metricCountDelivered,
+				Value: 1,
+				ConstLabels: map[string]string{
+					"day": dayKey(time.Now()),
+				},
+			}
+			continue
+		}
+
+		p.logChannels.ErrorChan <- result
 		p.logChannels.CountChan <- telemetry.Metric{
-								Name:        metricCountDelivered,
-								Value:       1,
-								ConstLabels: map[string]string{
-									"day": dayKey(time.Now()),
-								},
-							}
-
-		//js, err := ce.MarshalJSON()
-		//if err != nil {
-		//	p.logChannels.ErrorChan <- err
-		//	continue
-		//}
-		//_ = js
-
-		//kProducer.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &p.config.Topic, Partition: kafka.PartitionAny}, Value: js}
+			Name:        metricCountUndelivered,
+			Value:       1,
+			ConstLabels: map[string]string{
+				"day": dayKey(time.Now()),
+			},
+		}
 	}
 }
 
