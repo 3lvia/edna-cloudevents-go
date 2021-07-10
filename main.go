@@ -12,31 +12,17 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 
 	c := collector.config
 
-	sr := &schemaReaderImpl{
-		endpointAddress: c.SchemaAPIEndpoint,
-		username:        c.SchemaAPIUsername,
-		password:        c.SchemaAPIPassword,
-	}
-
-	schemaReference, schema, err := sr.getSchema(c.SchemaID)
-	if err != nil {
-		collector.logChannels.ErrorChan <- err
-		return
-	}
-
-	//kConfig := &kafka.ConfigMap{
-	//	"bootstrap.servers": c.Broker,
-	//	"sasl.username":     c.Username,
-	//	"sasl.password":     c.Password,
-	//	"sasl.mechanism":    "PLAIN",
-	//	"security.protocol": "SASL_SSL",
+	//sr := &schemaReaderImpl{
+	//	endpointAddress: c.SchemaAPIEndpoint,
+	//	username:        c.SchemaAPIUsername,
+	//	password:        c.SchemaAPIPassword,
 	//}
 
+
 	p := &producer{
-		//kConfig:         kConfig,
-		schema:          schema,
-		schemaReference: schemaReference,
+		schemaReference: "",
 		config:          c,
+
 		logChannels:     collector.logChannels,
 	}
 

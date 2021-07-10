@@ -7,6 +7,14 @@ type Serializable interface {
 	ToMap() map[string]interface{}
 }
 
+type Serializer interface {
+	SetSchema(schemaReference string) error
+
+	ContentType() string
+
+	Serialize(input interface{}) (interface{}, error)
+}
+
 // Deserializer is able to take a Avro deserialized map as input and convert it to an object.
 type Deserializer func (m interface{}) (Serializable, error)
 
@@ -25,5 +33,5 @@ type Message struct {
 
 	// Payload is the actual entity- or time series event to be sent. This object will be serialized to using Avro and
 	// wrapped in a cloudevent before being queued.
-	Payload Serializable
+	Payload interface{}
 }
