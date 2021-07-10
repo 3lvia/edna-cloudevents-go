@@ -32,7 +32,7 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 	//	"security.protocol": "SASL_SSL",
 	//}
 
-	h := &producer{
+	p := &producer{
 		//kConfig:         kConfig,
 		schema:          schema,
 		schemaReference: schemaReference,
@@ -40,7 +40,7 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 		logChannels:     collector.logChannels,
 	}
 
-	go h.start(ctx, ch)
+	go p.start(ctx, ch)
 }
 
 func StartConsumer(ch <-chan Message, opts ...Option) {

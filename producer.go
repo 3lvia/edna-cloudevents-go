@@ -116,6 +116,14 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 		result := client.Send(ctx, ce)
 		_ = result
 
+		p.logChannels.CountChan <- telemetry.Metric{
+								Name:        metricCountDelivered,
+								Value:       1,
+								ConstLabels: map[string]string{
+									"day": dayKey(time.Now()),
+								},
+							}
+
 		//js, err := ce.MarshalJSON()
 		//if err != nil {
 		//	p.logChannels.ErrorChan <- err
