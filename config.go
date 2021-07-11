@@ -28,6 +28,9 @@ type Config struct {
 	// Topic to produce or consume from
 	Topic string
 
+	// GroupID used by the cosumer
+	GroupID string
+
 	// Username is the username used in order to authenticate against Confluent Kafka.
 	Username string
 
@@ -79,14 +82,7 @@ func (c *Config) load() error {
 	if c.Password == "" {
 		return errors.New("missing env var KAFKA_PASSWORD")
 	}
-	c.Source = os.Getenv("EVENT_SOURCE")
-	if c.Source == "" {
-		return errors.New("missing env var EVENT_SOURCE")
-	}
-	c.Type = os.Getenv("EVENT_TYPE")
-	if c.Type == "" {
-		return errors.New("missing env var EVENT_TYPE")
-	}
+
 	c.SchemaAPIEndpoint = os.Getenv("KAFKA_SCHEMA_ENDPOINT")
 	if c.SchemaAPIEndpoint == "" {
 		return errors.New("missing env var KAFKA_SCHEMA_ENDPOINT")
@@ -108,5 +104,25 @@ func (c *Config) load() error {
 		return errors.New(fmt.Sprintf("kafka schema id %s could not be converted to an int", sid))
 	}
 	c.SchemaID = siid
+	return nil
+}
+
+func (c *Config) loadProducer() error {
+	c.Source = os.Getenv("EVENT_SOURCE")
+	if c.Source == "" {
+		return errors.New("missing env var EVENT_SOURCE")
+	}
+	c.Type = os.Getenv("EVENT_TYPE")
+	if c.Type == "" {
+		return errors.New("missing env var EVENT_TYPE")
+	}
+	return nil
+}
+
+func (c *Config) loadConsumer() error {
+	c.GroupID = os.Getenv("GROUP_ID")
+	if c.GroupID == "" {
+		return errors.New("missing env var GROUP_ID")
+	}
 	return nil
 }

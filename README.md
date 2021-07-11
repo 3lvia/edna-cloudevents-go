@@ -20,6 +20,9 @@ The library assumes that the following environment variables are set:
 * **EVENT_SOURCE** the source of events on the form http://elvia.no/[domain]/[system]
 * **EVENT_TYPE** the type of the events on the form no.elvia.[domain].[type]
 
+### Configuration only for consumers
+* **GROUP_ID** 
+
 ## Options
 
 ## Usage

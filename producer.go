@@ -13,11 +13,9 @@ import (
 
 const (
 	specVersion = "1.0"
-	contentType = "application/avro"
 
 	metricCountDelivered = "kafka_delivered"
 	metricCountUndelivered = "kafka_undelivered"
-	metricCountIgnored = "kafka_ignored"
 
 	signaledDateFormat = "2006-01-02"
 )
@@ -29,20 +27,10 @@ type producer struct {
 	logChannels     telemetry.LogChannels
 }
 
+
+
 func (p *producer) start(ctx context.Context, ch <-chan *Message) {
-	saramaConfig := sarama.NewConfig()
-
-	saramaConfig.Version = sarama.V2_8_0_0
-	saramaConfig.ClientID = p.config.ClientID
-
-	saramaConfig.Net.SASL.Enable = true
-	saramaConfig.Net.SASL.User = p.config.Username
-	saramaConfig.Net.SASL.Password = p.config.Password
-	saramaConfig.Net.SASL.Mechanism = "PLAIN"
-
-	saramaConfig.Net.TLS.Enable = true
-
-	//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+	saramaConfig := kafkaConfig(p.config)
 
 	sender, err := kafka_sarama.NewSender([]string{p.config.Broker}, saramaConfig, p.config.Topic)
 	if err != nil {
@@ -126,4 +114,22 @@ func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 
 func dayKey(d time.Time) string {
 	return d.Format(signaledDateFormat)
+}
+
+func kafkaConfig(config *Config) *sarama.Config {
+	saramaConfig := sarama.NewConfig()
+
+	saramaConfig.Version = sarama.V2_8_0_0
+	saramaConfig.ClientID = config.ClientID
+
+	saramaConfig.Net.SASL.Enable = true
+	saramaConfig.Net.SASL.User = config.Username
+	saramaConfig.Net.SASL.Password = config.Password
+	saramaConfig.Net.SASL.Mechanism = "PLAIN"
+
+	saramaConfig.Net.TLS.Enable = true
+
+	//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+
+	return saramaConfig
 }
