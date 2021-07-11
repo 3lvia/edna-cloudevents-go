@@ -2,14 +2,10 @@ package ednaevents
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/3lvia/telemetry-go"
 	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"log"
-	"os"
-
 	//"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 	"time"
@@ -27,8 +23,7 @@ const (
 )
 
 type producer struct {
-	//kConfig         *kafka.ConfigMap
-	schema          string
+	serializer      Serializer
 	schemaReference string
 	config          *Config
 	logChannels     telemetry.LogChannels
@@ -47,15 +42,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 
 	saramaConfig.Net.TLS.Enable = true
 
-	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
-
-	//kConfig := &kafka.ConfigMap{
-	//	"bootstrap.servers": c.Broker,
-	//	"sasl.username":     c.Username,
-	//	"sasl.password":     c.Password,
-	//	"sasl.mechanism":    "PLAIN",
-	//	"security.protocol": "SASL_SSL",
-	//}
+	//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 
 	sender, err := kafka_sarama.NewSender([]string{p.config.Broker}, saramaConfig, p.config.Topic)
 	if err != nil {
@@ -65,6 +52,12 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 	defer sender.Close(ctx)
 
 	client, err := cloudevents.NewClient(sender, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
+	if err != nil {
+		p.logChannels.ErrorChan <- err
+		return
+	}
+
+	err = p.serializer.SetSchema(p.schemaReference)
 	if err != nil {
 		p.logChannels.ErrorChan <- err
 		return
@@ -122,18 +115,11 @@ func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	ce.SetType(p.config.Type)
 	ce.SetDataSchema(p.schemaReference)
 
-	//b, err := serialize(m.Payload, p.schema)
-	//if err != nil {
-	//	return cloudevents.Event{}, err
-	//}
-
-	b, err := json.Marshal(m.Payload)
+	obj, err := p.serializer.Serialize(m.Payload)
 	if err != nil {
 		return ce, err
 	}
-
-	//ce.SetData(contentType, b)
-	ce.SetData("application/json", b)
+	ce.SetData(p.serializer.ContentType(), obj)
 
 	return ce, nil
 }
