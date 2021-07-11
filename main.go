@@ -20,6 +20,7 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 
 
 	p := &producer{
+		serializer: collector.serializer,
 		schemaReference: "",
 		config:          c,
 
