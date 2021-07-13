@@ -5,8 +5,6 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
-//import "github.com/confluentinc/confluent-kafka-go/kafka"
-
 func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
@@ -19,13 +17,6 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 		collector.logChannels.ErrorChan <- err
 		return
 	}
-
-	//sr := &schemaReaderImpl{
-	//	endpointAddress: c.SchemaAPIEndpoint,
-	//	username:        c.SchemaAPIUsername,
-	//	password:        c.SchemaAPIPassword,
-	//}
-
 
 	p := &producer{
 		config:          c,
