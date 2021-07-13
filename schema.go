@@ -1,7 +1,6 @@
 package ednaevents
 
 import (
-	"fmt"
 	"github.com/riferrei/srclient"
 )
 
@@ -15,11 +14,9 @@ type schemaReaderImpl struct {
 	password        string
 }
 
-func (r *schemaReaderImpl) getSchema(typ string) (string, error) {
+func (r *schemaReaderImpl) getSchema(subject string) (string, error) {
 	client := srclient.CreateSchemaRegistryClient(r.endpointAddress)
 	client.SetCredentials(r.username, r.password)
-
-	subject := fmt.Sprintf("%s-value", typ)
 
 	schema, err := client.GetLatestSchema(subject, false)
 	if err != nil {

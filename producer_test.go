@@ -82,7 +82,6 @@ func Test_producer_start(t *testing.T) {
 		SchemaAPIEndpoint: "",
 		SchemaAPIUsername: "",
 		SchemaAPIPassword: "",
-		SchemaID:          0,
 	}
 
 	p := &producer{config: config, logChannels: logChannels}

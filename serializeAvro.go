@@ -8,6 +8,18 @@ type avroSerializer struct {
 }
 
 func (s *avroSerializer) SetSchema(config *SchemaConfig) error {
+	reader := &schemaReaderImpl{
+		endpointAddress: config.SchemaAPIEndpoint,
+		username:        config.SchemaAPIUsername,
+		password:        config.SchemaAPIPassword,
+	}
+
+	schema, err := reader.getSchema(config.Type)
+	if err != nil {
+		return err
+	}
+
+	s.schema = schema
 	return nil
 }
 

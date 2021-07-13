@@ -15,7 +15,8 @@ The library assumes that the following environment variables are set:
 * **KAFKA_SCHEMA_USER** the user used to authenticate against the schema registry.
 * **KAFKA_SCHEMA_PASSWORD** the password of the Kafka schema user.
 * **KAFKA_SCHEMA_ID** the ID of the schema. Currently, must be an integer.
-  
+* **TYPE** the event type. Is used as subject to resolve the schema.  
+
 ### Configuration only for producers
 * **EVENT_SOURCE** the source of events on the form http://elvia.no/[domain]/[system]
 * **EVENT_TYPE** the type of the events on the form no.elvia.[domain].[type]
