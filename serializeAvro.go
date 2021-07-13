@@ -34,9 +34,9 @@ func (s *avroSerializer) Serialize(input interface{}) (interface{}, error) {
 	}
 
 	obj := input.(Serializable)
-	m := obj.ToMap()
+	//m := obj.ToMap()
 
-	b, err := codec.SingleFromNative(nil, m)
+	b, err := codec.SingleFromNative(nil, obj)
 	if err != nil {
 		return nil, err
 	}

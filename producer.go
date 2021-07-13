@@ -1,12 +1,10 @@
 package ednaevents
 
 import (
+	"bytes"
 	"context"
 	"github.com/3lvia/telemetry-go"
 	"github.com/Shopify/sarama"
-	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	//"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 	"time"
 )
@@ -15,7 +13,7 @@ const (
 	specVersion = "1.0"
 
 	metricCountDelivered = "kafka_delivered"
-	metricCountUndelivered = "kafka_undelivered"
+	metricCountReceived = "kafka_received"
 
 	signaledDateFormat = "2006-01-02"
 )
@@ -31,37 +29,19 @@ type producer struct {
 func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 	saramaConfig := kafkaConfig(p.config)
 
-	sender, err := kafka_sarama.NewSender([]string{p.config.Broker}, saramaConfig, p.config.Topic)
+	producer, err := sarama.NewAsyncProducer([]string{p.config.Broker}, saramaConfig)
 	if err != nil {
 		p.logChannels.ErrorChan <- err
 		return
 	}
-	defer sender.Close(ctx)
+	defer producer.Close()
 
-	client, err := cloudevents.NewClient(sender, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
-	if err != nil {
-		p.logChannels.ErrorChan <- err
-		return
-	}
+	input := producer.Input()
 
-	err = p.serializer.SetSchema(p.config.schemaConfig())
-	if err != nil {
-		p.logChannels.ErrorChan <- err
-		return
-	}
-
-	for {
-		obj := <-ch
-		ce, err := p.getCloudEvent(obj)
-
-		if err != nil {
-			p.logChannels.ErrorChan <- err
-			continue
-		}
-
-		result := client.Send(ctx, ce)
-
-		if result == nil {
+	go func(successes <-chan *sarama.ProducerMessage){
+		for {
+			success := <- successes
+			_ = success
 			p.logChannels.CountChan <- telemetry.Metric{
 				Name:  metricCountDelivered,
 				Value: 1,
@@ -69,13 +49,30 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 					"day": dayKey(time.Now()),
 				},
 			}
+		}
+	}(producer.Successes())
+
+	for {
+		obj := <-ch
+
+		mBytes, key, headers, err := p.message(obj)
+		if err != nil {
+			p.logChannels.ErrorChan <- err
 			continue
 		}
 
-		p.logChannels.ErrorChan <- result
+		m := &sarama.ProducerMessage{
+			Topic:   p.config.Topic,
+			Key:     sarama.StringEncoder(key),
+			Value:   sarama.ByteEncoder(mBytes),
+			Headers: headers,
+		}
+
+		input <- m
+
 		p.logChannels.CountChan <- telemetry.Metric{
-			Name:        metricCountUndelivered,
-			Value:       1,
+			Name:  metricCountReceived,
+			Value: 1,
 			ConstLabels: map[string]string{
 				"day": dayKey(time.Now()),
 			},
@@ -83,32 +80,27 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 	}
 }
 
-func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
+func (p *producer) message(m *Message) ([]byte, string, []sarama.RecordHeader, error) {
+	var buf bytes.Buffer
+	err := m.Payload.Serialize(&buf)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
 	id := m.ID
 	if id == "" {
 		id = uuid.New().String()
 	}
 
-	ce := cloudevents.NewEvent()
-
-	ce.SetID(id)
-
+	var headers []sarama.RecordHeader
+	headers = append(headers, sarama.RecordHeader{Key: []byte("id"), Value: []byte(id)})
+	headers = append(headers, sarama.RecordHeader{Key: []byte("source"), Value: []byte(p.config.Source)})
+	headers = append(headers, sarama.RecordHeader{Key: []byte("type"), Value: []byte(p.config.Type)})
 	if m.EntityID != "" {
-		ce.SetSubject(m.EntityID)
+		headers = append(headers, sarama.RecordHeader{Key: []byte("subject"), Value: []byte(m.EntityID)})
 	}
 
-	ce.SetSpecVersion(specVersion)
-	ce.SetSource(p.config.Source)
-	ce.SetType(p.config.Type)
-	//ce.SetDataSchema(p.schemaReference)
-
-	obj, err := p.serializer.Serialize(m.Payload)
-	if err != nil {
-		return ce, err
-	}
-	ce.SetData(p.serializer.ContentType(), obj)
-
-	return ce, nil
+	return buf.Bytes(), m.EntityID, headers, nil
 }
 
 func dayKey(d time.Time) string {

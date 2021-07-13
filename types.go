@@ -1,10 +1,12 @@
 package ednaevents
 
+import "io"
+
 // Serializable is an object that is meant to be serialized using the Avro format. In order for this to work the
 // object must be able to represent itself as a map.
 type Serializable interface {
-	// ToMap returns a map-based representation og the object
-	ToMap() map[string]interface{}
+	// Serialize serializes the object as bytes onto the writer
+	Serialize(w io.Writer) error
 }
 
 type Serializer interface {
@@ -33,5 +35,5 @@ type Message struct {
 
 	// Payload is the actual entity- or time series event to be sent. This object will be serialized to using Avro and
 	// wrapped in a cloudevent before being queued.
-	Payload interface{}
+	Payload Serializable
 }
