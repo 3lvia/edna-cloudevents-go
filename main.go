@@ -28,7 +28,6 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 
 
 	p := &producer{
-		serializer: collector.serializer,
 		config:          c,
 		logChannels:     collector.logChannels,
 	}

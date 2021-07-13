@@ -9,17 +9,6 @@ type Serializable interface {
 	Serialize(w io.Writer) error
 }
 
-type Serializer interface {
-	SetSchema(config *SchemaConfig) error
-
-	ContentType() string
-
-	Serialize(input interface{}) (interface{}, error)
-}
-
-// Deserializer is able to take a Avro deserialized map as input and convert it to an object.
-type Deserializer func (m interface{}) (Serializable, error)
-
 // Message wraps an object to be put on a topic or consumed from it.
 type Message struct {
 	// ID is the id of the message. This value is used to populate the property 'id' of the cloudevents event. If this

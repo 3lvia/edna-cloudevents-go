@@ -19,7 +19,6 @@ const (
 )
 
 type producer struct {
-	serializer      Serializer
 	config          *Config
 	logChannels     telemetry.LogChannels
 }
