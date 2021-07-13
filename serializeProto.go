@@ -6,7 +6,7 @@ type protoSerializer struct {
 
 }
 
-func (s *protoSerializer) SetSchema(schemaReference string) error {
+func (s *protoSerializer) SetSchema(config *SchemaConfig) error {
 	return nil
 }
 

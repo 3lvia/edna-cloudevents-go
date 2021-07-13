@@ -2,9 +2,7 @@ package ednaevents
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"strconv"
 )
 
 func ConfigFromEnvVars() (*Config, error) {
@@ -55,9 +53,31 @@ type Config struct {
 
 	// SchemaAPIPassword is the password for the user of the schema API endpoint.
 	SchemaAPIPassword string
+}
 
-	// SchemaID the id of the Avro schema
-	SchemaID int
+func (c *Config) schemaConfig() *SchemaConfig {
+	return &SchemaConfig{
+		SchemaAPIEndpoint: c.SchemaAPIEndpoint,
+		SchemaAPIUsername: c.SchemaAPIUsername,
+		SchemaAPIPassword: c.SchemaAPIPassword,
+		Type:              c.Type,
+	}
+}
+
+type SchemaConfig struct {
+	// SchemaAPIEndpoint is the http endpoint from which schema information can be fetched.
+	SchemaAPIEndpoint string
+
+	// SchemaAPIUsername is the username to be used when authenticating against the schema API.
+	SchemaAPIUsername string
+
+	// SchemaAPIPassword is the password for the user of the schema API endpoint.
+	SchemaAPIPassword string
+
+	// Type of the entity of the message. This value is used to  populate the setting 'type' in
+	// the cloudevents event. The general recommended pattern for Elvia is no.elvia.[DOMAIN].[TYPE]. Example:
+	// no.elvia.msi.meteringpointversion
+	Type string
 }
 
 // load loads this instance with values from environment variables.
@@ -95,15 +115,7 @@ func (c *Config) load() error {
 	if c.SchemaAPIPassword == "" {
 		return errors.New("missing env var KAFKA_SCHEMA_PASSWORD")
 	}
-	sid := os.Getenv("KAFKA_SCHEMA_ID")
-	if sid == "" {
-		 return errors.New("missing env var KAFKA_SCHEMA_ID")
-	}
-	siid, err := strconv.Atoi(sid)
-	if err != nil {
-		return errors.New(fmt.Sprintf("kafka schema id %s could not be converted to an int", sid))
-	}
-	c.SchemaID = siid
+
 	return nil
 }
 

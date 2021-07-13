@@ -6,7 +6,7 @@ type jsonSerializer struct {
 
 }
 
-func (s *jsonSerializer) SetSchema(schemaReference string) error {
+func (s *jsonSerializer) SetSchema(config *SchemaConfig) error {
 	return nil
 }
 

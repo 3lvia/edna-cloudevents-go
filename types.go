@@ -8,7 +8,7 @@ type Serializable interface {
 }
 
 type Serializer interface {
-	SetSchema(schemaReference string) error
+	SetSchema(config *SchemaConfig) error
 
 	ContentType() string
 

@@ -2,11 +2,12 @@ package ednaevents
 
 import "github.com/linkedin/goavro/v2"
 
+// https://psrc-dozoy.westeurope.azure.confluent.cloud/subjects/no.elvia.dp.securityauditlog
 type avroSerializer struct {
 	schema string
 }
 
-func (s *avroSerializer) SetSchema(schemaReference string) error {
+func (s *avroSerializer) SetSchema(config *SchemaConfig) error {
 	return nil
 }
 

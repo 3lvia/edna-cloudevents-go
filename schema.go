@@ -15,16 +15,16 @@ type schemaReaderImpl struct {
 	password        string
 }
 
-func (r *schemaReaderImpl) getSchema(id int) (string, string, error) {
+func (r *schemaReaderImpl) getSchema(typ string) (string, error) {
 	client := srclient.CreateSchemaRegistryClient(r.endpointAddress)
 	client.SetCredentials(r.username, r.password)
 
-	schema, err := client.GetSchema(id)
+	subject := fmt.Sprintf("%s-value", typ)
+
+	schema, err := client.GetLatestSchema(subject, false)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
-	reference := fmt.Sprintf("%s/schemas/ids/%d", r.endpointAddress, id)
-
-	return reference, schema.Schema(), nil
+	return schema.Schema(), nil
 }

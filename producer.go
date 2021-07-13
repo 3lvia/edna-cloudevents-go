@@ -22,7 +22,6 @@ const (
 
 type producer struct {
 	serializer      Serializer
-	schemaReference string
 	config          *Config
 	logChannels     telemetry.LogChannels
 }
@@ -45,7 +44,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 		return
 	}
 
-	err = p.serializer.SetSchema(p.schemaReference)
+	err = p.serializer.SetSchema(p.config.schemaConfig())
 	if err != nil {
 		p.logChannels.ErrorChan <- err
 		return
@@ -101,7 +100,7 @@ func (p *producer) getCloudEvent(m *Message) (cloudevents.Event, error) {
 	ce.SetSpecVersion(specVersion)
 	ce.SetSource(p.config.Source)
 	ce.SetType(p.config.Type)
-	ce.SetDataSchema(p.schemaReference)
+	//ce.SetDataSchema(p.schemaReference)
 
 	obj, err := p.serializer.Serialize(m.Payload)
 	if err != nil {
