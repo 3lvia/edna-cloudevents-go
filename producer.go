@@ -10,8 +10,6 @@ import (
 )
 
 const (
-	specVersion = "1.0"
-
 	metricCountDelivered = "kafka_delivered"
 	metricCountReceived = "kafka_received"
 
@@ -19,23 +17,18 @@ const (
 )
 
 type producer struct {
-	config          *Config
-	logChannels     telemetry.LogChannels
+	config      *Config
+	producer    sarama.AsyncProducer
+	logChannels telemetry.LogChannels
 }
 
-
-
 func (p *producer) start(ctx context.Context, ch <-chan *Message) {
-	saramaConfig := kafkaConfig(p.config)
-
-	producer, err := sarama.NewAsyncProducer([]string{p.config.Broker}, saramaConfig)
+	producer, err := p.asyncProducer()
 	if err != nil {
 		p.logChannels.ErrorChan <- err
 		return
 	}
 	defer producer.Close()
-
-	input := producer.Input()
 
 	go func(successes <-chan *sarama.ProducerMessage){
 		for {
@@ -45,12 +38,13 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 				Name:  metricCountDelivered,
 				Value: 1,
 				ConstLabels: map[string]string{
-					"day": dayKey(time.Now()),
+					"day": dayKey(time.Now().UTC()),
 				},
 			}
 		}
 	}(producer.Successes())
 
+	input := producer.Input()
 	for {
 		obj := <-ch
 
@@ -73,10 +67,27 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 			Name:  metricCountReceived,
 			Value: 1,
 			ConstLabels: map[string]string{
-				"day": dayKey(time.Now()),
+				"day": dayKey(time.Now().UTC()),
 			},
 		}
 	}
+}
+
+func (p *producer) asyncProducer() (sarama.AsyncProducer, error) {
+	if p.producer != nil {
+		return p.producer, nil
+	}
+
+	saramaConfig := kafkaConfig(p.config)
+	saramaConfig.Producer.Return.Successes = true
+
+	producer, err := sarama.NewAsyncProducer([]string{p.config.Broker}, saramaConfig)
+	if err != nil {
+		p.logChannels.ErrorChan <- err
+		return nil, err
+	}
+
+	return producer, nil
 }
 
 func (p *producer) message(m *Message) ([]byte, string, []sarama.RecordHeader, error) {
