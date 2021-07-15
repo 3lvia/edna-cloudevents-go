@@ -2,10 +2,9 @@ package ednaevents
 
 import (
 	"context"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
-func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
+func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
 		opt(collector)
@@ -26,7 +25,7 @@ func StartProducer(ctx context.Context, ch <-chan *Message, opts ...Option) {
 	go p.start(ctx, ch)
 }
 
-func StartConsumer(ctx context.Context, ch chan<- cloudevents.Event, opts ...Option) {
+func StartConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...Option) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
 		opt(collector)

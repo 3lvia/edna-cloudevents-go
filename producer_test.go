@@ -23,7 +23,7 @@ func Test_producer_message(t *testing.T) {
 		},
 		logChannels: logChannels,
 	}
-	m := &Message{
+	m := &ProducerEvent{
 		EntityID: "hansen",
 		Payload:  &person{
 			Name: "Joe Hansen",
@@ -89,7 +89,7 @@ func Test_producer_start(t *testing.T) {
 	}
 	ap.ExpectInputWithMessageCheckerFunctionAndSucceed(checker)
 
-	ch := make(chan *Message)
+	ch := make(chan *ProducerEvent)
 
 	p := &producer{
 		config:      &Config{
@@ -105,8 +105,8 @@ func Test_producer_start(t *testing.T) {
 	// Act
 	go p.start(ctx, ch)
 
-	go func(mch chan<- *Message) {
-		mch <- &Message{
+	go func(mch chan<- *ProducerEvent) {
+		mch <- &ProducerEvent{
 			ID:       "m-1",
 			EntityID: "p-1",
 			Payload:  &person{

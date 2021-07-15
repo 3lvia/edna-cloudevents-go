@@ -11,7 +11,7 @@ import (
 
 const (
 	metricCountDelivered = "kafka_delivered"
-	metricCountReceived = "kafka_received"
+	metricCountAttempted = "kafka_attempted"
 
 	signaledDateFormat = "2006-01-02"
 )
@@ -22,7 +22,7 @@ type producer struct {
 	logChannels telemetry.LogChannels
 }
 
-func (p *producer) start(ctx context.Context, ch <-chan *Message) {
+func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 	producer, err := p.asyncProducer()
 	if err != nil {
 		p.logChannels.ErrorChan <- err
@@ -64,7 +64,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *Message) {
 		input <- m
 
 		p.logChannels.CountChan <- telemetry.Metric{
-			Name:  metricCountReceived,
+			Name:  metricCountAttempted,
 			Value: 1,
 			ConstLabels: map[string]string{
 				"day": dayKey(time.Now().UTC()),
@@ -90,7 +90,7 @@ func (p *producer) asyncProducer() (sarama.AsyncProducer, error) {
 	return producer, nil
 }
 
-func (p *producer) message(m *Message) ([]byte, string, []sarama.RecordHeader, error) {
+func (p *producer) message(m *ProducerEvent) ([]byte, string, []sarama.RecordHeader, error) {
 	var buf bytes.Buffer
 	err := m.Payload.Serialize(&buf)
 	if err != nil {

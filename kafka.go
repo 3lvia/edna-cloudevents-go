@@ -43,7 +43,7 @@ package ednaevents
 //		defer close(doneChan)
 //		for e := range p.Events() {
 //			switch ev := e.(type) {
-//			case *kafka.Message:
+//			case *kafka.ProducerEvent:
 //				m := ev
 //				if m.TopicPartition.Error != nil {
 //					fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
@@ -60,7 +60,7 @@ package ednaevents
 //	}()
 //
 //	value := "Hello Go!"
-//	p.ProduceChannel() <- &kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny}, Value: []byte(value)}
+//	p.ProduceChannel() <- &kafka.ProducerEvent{TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny}, Value: []byte(value)}
 //
 //	<-doneChan
 //

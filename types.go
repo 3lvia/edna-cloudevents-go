@@ -1,6 +1,9 @@
 package ednaevents
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 // Serializable is an object that is meant to be serialized using the Avro format. In order for this to work the
 // object must be able to represent itself as a map.
@@ -9,8 +12,8 @@ type Serializable interface {
 	Serialize(w io.Writer) error
 }
 
-// Message wraps an object to be put on a topic or consumed from it.
-type Message struct {
+// ProducerEvent wraps an object to be put on a topic or consumed from it.
+type ProducerEvent struct {
 	// ID is the id of the message. This value is used to populate the property 'id' of the cloudevents event. If this
 	// value is not set a GUID-based value will be generated and set  internally. This value should only be used in the
 	// (rare) case where the producer needs control over the actual id
@@ -25,4 +28,19 @@ type Message struct {
 	// Payload is the actual entity- or time series event to be sent. This object will be serialized to using Avro and
 	// wrapped in a cloudevent before being queued.
 	Payload Serializable
+}
+
+type ConsumerEvent struct {
+	Value    []byte
+	Headers  map[string]string
+	Metadata KafkaMetadata
+}
+
+type KafkaMetadata struct {
+	Key            []byte
+	Topic          string
+	Partition      int32
+	Offset         int64
+	Timestamp      time.Time
+	BlockTimestamp time.Time
 }
