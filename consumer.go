@@ -38,11 +38,25 @@ func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 	}
 
 	for _, partition := range partitions {
-		go consumePartition(cnsmr, topic, partition, hwm[topic][partition], ch, c.logChannels)
+		var offset int64 = 0
+		if hw, ok := hwm[topic]; ok {
+			if o, ok := hw[partition]; ok {
+				offset = o
+			}
+		}
+		go consumePartition(cnsmr, topic, partition, offset, ch, c.logChannels)
 	}
 }
 
 func consumePartition(cons sarama.Consumer, topic string, partition int32, offset int64, ch chan<- *ConsumerEvent, logChannels telemetry.LogChannels) {
+	logChannels.EventChan <- telemetry.Event{
+		Name: "partition_consumer_start",
+		Data: map[string]string{
+			"partition": fmt.Sprintf("%d", partition),
+			"offset": fmt.Sprintf("%d", offset),
+		},
+	}
+
 	pConsumer, err := cons.ConsumePartition(topic, partition, offset)
 	if err != nil {
 		logChannels.ErrorChan <- err
