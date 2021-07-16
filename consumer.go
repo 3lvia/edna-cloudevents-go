@@ -2,7 +2,6 @@ package ednaevents
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/3lvia/telemetry-go"
 	"github.com/Shopify/sarama"
@@ -33,8 +32,10 @@ func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 
 	hwm := cnsmr.HighWaterMarks()
 	if _, ok := hwm[topic]; !ok {
-		c.logChannels.ErrorChan <- errors.New(fmt.Sprintf("no high water marks for topic %s", topic))
-		return
+		c.logChannels.EventChan <- telemetry.Event{
+			Name: "no_highwatermarks",
+			Data: map[string]string{"topic": topic},
+		}
 	}
 
 	for _, partition := range partitions {
