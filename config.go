@@ -44,40 +44,6 @@ type Config struct {
 	// the cloudevents event. The general recommended pattern for Elvia is no.elvia.[DOMAIN].[TYPE]. Example:
 	// no.elvia.msi.meteringpointversion
 	Type string
-
-	// SchemaAPIEndpoint is the http endpoint from which schema information can be fetched.
-	SchemaAPIEndpoint string
-
-	// SchemaAPIUsername is the username to be used when authenticating against the schema API.
-	SchemaAPIUsername string
-
-	// SchemaAPIPassword is the password for the user of the schema API endpoint.
-	SchemaAPIPassword string
-}
-
-func (c *Config) schemaConfig() *SchemaConfig {
-	return &SchemaConfig{
-		SchemaAPIEndpoint: c.SchemaAPIEndpoint,
-		SchemaAPIUsername: c.SchemaAPIUsername,
-		SchemaAPIPassword: c.SchemaAPIPassword,
-		Type:              c.Type,
-	}
-}
-
-type SchemaConfig struct {
-	// SchemaAPIEndpoint is the http endpoint from which schema information can be fetched.
-	SchemaAPIEndpoint string
-
-	// SchemaAPIUsername is the username to be used when authenticating against the schema API.
-	SchemaAPIUsername string
-
-	// SchemaAPIPassword is the password for the user of the schema API endpoint.
-	SchemaAPIPassword string
-
-	// Type of the entity of the message. This value is used to  populate the setting 'type' in
-	// the cloudevents event. The general recommended pattern for Elvia is no.elvia.[DOMAIN].[TYPE]. Example:
-	// no.elvia.msi.meteringpointversion
-	Type string
 }
 
 // load loads this instance with values from environment variables.
@@ -101,19 +67,6 @@ func (c *Config) load() error {
 	c.Password = os.Getenv("KAFKA_PASSWORD")
 	if c.Password == "" {
 		return errors.New("missing env var KAFKA_PASSWORD")
-	}
-
-	c.SchemaAPIEndpoint = os.Getenv("KAFKA_SCHEMA_ENDPOINT")
-	if c.SchemaAPIEndpoint == "" {
-		return errors.New("missing env var KAFKA_SCHEMA_ENDPOINT")
-	}
-	c.SchemaAPIUsername = os.Getenv("KAFKA_SCHEMA_USER")
-	if c.SchemaAPIUsername == "" {
-		return errors.New("missing env var KAFKA_SCHEMA_USER")
-	}
-	c.SchemaAPIPassword = os.Getenv("KAFKA_SCHEMA_PASSWORD")
-	if c.SchemaAPIPassword == "" {
-		return errors.New("missing env var KAFKA_SCHEMA_PASSWORD")
 	}
 
 	return nil
