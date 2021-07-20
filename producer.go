@@ -93,6 +93,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 func syncProducer(config *Config) (sarama.SyncProducer, error) {
 	saramaConfig := kafkaConfig(config)
+	saramaConfig.Producer.Return.Successes = true
 	p, err := sarama.NewSyncProducer([]string{config.Broker}, saramaConfig)
 	if err != nil {
 		return nil, err
