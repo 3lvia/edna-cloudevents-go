@@ -44,3 +44,7 @@ type KafkaMetadata struct {
 	Timestamp      time.Time
 	BlockTimestamp time.Time
 }
+
+type ProducerService interface {
+	Produce(m *ProducerEvent) (partition int32, offset int64, err error)
+}

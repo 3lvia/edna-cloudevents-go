@@ -16,9 +16,40 @@ const (
 	signaledDateFormat = "2006-01-02"
 )
 
+func NewSyncProducer(config *Config) (ProducerService, error) {
+	p, err := syncProducer(config)
+	if err != nil {
+		return nil, err
+	}
+
+	pp := &producer{
+		config:       config,
+		syncProducer: p,
+	}
+
+	return pp, nil
+}
+
 type producer struct {
-	config      *Config
-	producer    sarama.AsyncProducer
+	config       *Config
+	producer     sarama.AsyncProducer
+	syncProducer sarama.SyncProducer
+}
+
+func (p *producer) Produce(e *ProducerEvent) (partition int32, offset int64, err error) {
+	mBytes, key, headers, err := p.message(e)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	m := &sarama.ProducerMessage{
+		Topic:   p.config.Topic,
+		Key:     sarama.StringEncoder(key),
+		Value:   sarama.ByteEncoder(mBytes),
+		Headers: headers,
+	}
+
+	return p.syncProducer.SendMessage(m)
 }
 
 func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
@@ -58,6 +89,15 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 		metrics.incCounter(metricCountAttempted, map[string]string{"day": dayKey(time.Now().UTC())})
 	}
+}
+
+func syncProducer(config *Config) (sarama.SyncProducer, error) {
+	saramaConfig := kafkaConfig(config)
+	p, err := sarama.NewSyncProducer([]string{config.Broker}, saramaConfig)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func (p *producer) asyncProducer() (sarama.AsyncProducer, error) {
