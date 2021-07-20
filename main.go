@@ -2,6 +2,7 @@ package ednaevents
 
 import (
 	"context"
+	"github.com/prometheus/common/log"
 )
 
 func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option) {
@@ -13,13 +14,12 @@ func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option
 	c := collector.config
 	err := c.loadProducer()
 	if err != nil {
-		collector.logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 
 	p := &producer{
 		config:          c,
-		logChannels:     collector.logChannels,
 	}
 
 	go p.start(ctx, ch)
@@ -34,13 +34,12 @@ func StartConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...Option
 	conf := collector.config
 	err := conf.loadConsumer()
 	if err != nil {
-		collector.logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 
 	c := &consumer{
 		config:      conf,
-		logChannels: collector.logChannels,
 	}
 
 	go c.start(ctx, ch)

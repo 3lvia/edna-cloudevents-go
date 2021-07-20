@@ -3,9 +3,9 @@ package ednaevents
 import (
 	"bytes"
 	"context"
-	"github.com/3lvia/telemetry-go"
 	"github.com/Shopify/sarama"
 	"github.com/google/uuid"
+	"github.com/prometheus/common/log"
 	"time"
 )
 
@@ -19,13 +19,12 @@ const (
 type producer struct {
 	config      *Config
 	producer    sarama.AsyncProducer
-	logChannels telemetry.LogChannels
 }
 
 func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 	producer, err := p.asyncProducer()
 	if err != nil {
-		p.logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 	defer producer.Close()
@@ -34,13 +33,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 		for {
 			success := <- successes
 			_ = success
-			p.logChannels.CountChan <- telemetry.Metric{
-				Name:  metricCountDelivered,
-				Value: 1,
-				ConstLabels: map[string]string{
-					"day": dayKey(time.Now().UTC()),
-				},
-			}
+			metrics.incCounter(metricCountDelivered, map[string]string{"day": dayKey(time.Now().UTC())})
 		}
 	}(producer.Successes())
 
@@ -50,7 +43,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 		mBytes, key, headers, err := p.message(obj)
 		if err != nil {
-			p.logChannels.ErrorChan <- err
+			log.Error(err)
 			continue
 		}
 
@@ -63,13 +56,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 		input <- m
 
-		p.logChannels.CountChan <- telemetry.Metric{
-			Name:  metricCountAttempted,
-			Value: 1,
-			ConstLabels: map[string]string{
-				"day": dayKey(time.Now().UTC()),
-			},
-		}
+		metrics.incCounter(metricCountAttempted, map[string]string{"day": dayKey(time.Now().UTC())})
 	}
 }
 
@@ -83,7 +70,7 @@ func (p *producer) asyncProducer() (sarama.AsyncProducer, error) {
 
 	producer, err := sarama.NewAsyncProducer([]string{p.config.Broker}, saramaConfig)
 	if err != nil {
-		p.logChannels.ErrorChan <- err
+		log.Error()
 		return nil, err
 	}
 

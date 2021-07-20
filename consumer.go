@@ -3,8 +3,8 @@ package ednaevents
 import (
 	"context"
 	"fmt"
-	"github.com/3lvia/telemetry-go"
 	"github.com/Shopify/sarama"
+	"github.com/prometheus/common/log"
 	"time"
 )
 
@@ -13,29 +13,25 @@ const metricCountReceived = "kafka_received"
 type consumer struct {
 	config      *Config
 	consumer    sarama.Consumer
-	logChannels telemetry.LogChannels
 }
 
 func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 	cnsmr, err := c.getConsumer()
 	if err != nil {
-		c.logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 
 	topic := c.config.Topic
 	partitions, err := cnsmr.Partitions(topic)
 	if err != nil {
-		c.logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 
 	hwm := cnsmr.HighWaterMarks()
 	if _, ok := hwm[topic]; !ok {
-		c.logChannels.EventChan <- telemetry.Event{
-			Name: "no_highwatermarks",
-			Data: map[string]string{"topic": topic},
-		}
+		log.Infof("no_highwatermarks, topic: %s", topic)
 	}
 
 	for _, partition := range partitions {
@@ -45,22 +41,16 @@ func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 				offset = o
 			}
 		}
-		go consumePartition(cnsmr, topic, partition, offset, ch, c.logChannels)
+		go consumePartition(cnsmr, topic, partition, offset, ch)
 	}
 }
 
-func consumePartition(cons sarama.Consumer, topic string, partition int32, offset int64, ch chan<- *ConsumerEvent, logChannels telemetry.LogChannels) {
-	logChannels.EventChan <- telemetry.Event{
-		Name: "partition_consumer_start",
-		Data: map[string]string{
-			"partition": fmt.Sprintf("%d", partition),
-			"offset": fmt.Sprintf("%d", offset),
-		},
-	}
+func consumePartition(cons sarama.Consumer, topic string, partition int32, offset int64, ch chan<- *ConsumerEvent) {
+	log.Infof("partition_consumer_start, parition: %d, offset: %d", partition, offset)
 
 	pConsumer, err := cons.ConsumePartition(topic, partition, offset)
 	if err != nil {
-		logChannels.ErrorChan <- err
+		log.Error(err)
 		return
 	}
 
@@ -69,11 +59,8 @@ func consumePartition(cons sarama.Consumer, topic string, partition int32, offse
 		m := <- messages
 		ch <- consumerEvent(m)
 
-		logChannels.CountChan <- telemetry.Metric{
-			Name:        metricCountReceived,
-			Value:       1,
-			ConstLabels: map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)},
-		}
+		labels := map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)}
+		metrics.incCounter(metricCountReceived, labels)
 	}
 }
 
