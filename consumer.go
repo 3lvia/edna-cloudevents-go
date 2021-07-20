@@ -103,6 +103,8 @@ func (c *consumer) getConsumer() (sarama.Consumer, error) {
 	}
 
 	saramaConfig := kafkaConfig(c.config)
+	saramaConfig.Consumer.Offsets.AutoCommit.Enable = true
+
 	consumer, err := sarama.NewConsumer([]string{c.config.Broker}, saramaConfig)
 	if err != nil {
 		return nil, err
