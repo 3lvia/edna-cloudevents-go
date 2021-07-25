@@ -21,16 +21,24 @@ The library assumes that the following environment variables are set:
 * **EVENT_SOURCE** the source of events on the form http://elvia.no/[domain]/[system]
 * **EVENT_TYPE** the type of the events on the form no.elvia.[domain].[type]
 
-### Configuration only for consumers
+### Configuration only for direct consumers
+
+### Configuration only for grouped consumers
 * **GROUP_ID** 
 
 ## Options
 
 ## Usage
 
+
 ## Metrics
+### Metrics for producer
 ```
 kafka_delivered{day="2021-07-11"} 479
-# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
-# TYPE process_cpu_seconds_total counter
+```
+### Metrics for consumer
+```
+# HELP kafka_received 
+# TYPE kafka_received counter
+kafka_received{day="2021-07-24",partition="0"} 75515
 ```

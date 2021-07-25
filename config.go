@@ -85,6 +85,10 @@ func (c *Config) loadProducer() error {
 }
 
 func (c *Config) loadConsumer() error {
+	return nil
+}
+
+func (c *Config) loadConsumerGroup() error {
 	c.GroupID = os.Getenv("GROUP_ID")
 	if c.GroupID == "" {
 		return errors.New("missing env var GROUP_ID")
