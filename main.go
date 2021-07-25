@@ -29,28 +29,31 @@ func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option
 }
 
 func StartGroupedConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...Option) {
-	collector := &OptionsCollector{}
-	for _, opt := range opts {
-		opt(collector)
-	}
+	go func() {
+		collector := &OptionsCollector{}
+		for _, opt := range opts {
+			opt(collector)
+		}
 
-	k := groupedConsumer{
-		config: collector.config,
-		ready:  make(chan bool),
-		ch:     ch,
-	}
-	f, err := k.init(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
+		k := groupedConsumer{
+			config: collector.config,
+			ready:  make(chan bool),
+			ch:     ch,
+		}
+		f, err := k.init(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-	select {
-	case <-sigterm:
-		log.Warnln("terminating: via signal")
-	}
-	go f()
+		sigterm := make(chan os.Signal, 1)
+		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-sigterm:
+			log.Warnln("terminating: via signal")
+		}
+
+		f()
+	}()
 }
 
 // StartDirectConsumer starts a consumer without support for consumer groups or offsets, meaning that all events
