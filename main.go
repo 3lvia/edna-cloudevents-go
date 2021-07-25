@@ -50,7 +50,7 @@ func StartGroupedConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ..
 	case <-sigterm:
 		log.Warnln("terminating: via signal")
 	}
-	f()
+	go f()
 }
 
 // StartDirectConsumer starts a consumer without support for consumer groups or offsets, meaning that all events
