@@ -24,12 +24,127 @@ The library assumes that the following environment variables are set:
 ### Configuration only for direct consumers
 
 ### Configuration only for grouped consumers
-* **GROUP_ID** 
+* **GROUP_ID** the consumer group ID. All simultaneous services that have the same ID will automatically cooperate by load balancing consumptions from partitions
 
 ## Options
 
 ## Usage
+### Producing events synchronously
+When producing events synchronously, the client waits until the event is written to the Kafka queue before returning.
+```
+import ednaevents "github.com/3lvia/edna-cloudevents-go"
 
+// Setup
+config, err := ednaevents.ConfigFromEnvVars()
+if err != nil {
+    log.Fatal(err)
+}
+
+p, err := ednaevents.NewSyncProducer(config)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Producing
+obj := getObjectToEnqueueFromSomewhere() // obj must satisfy ednaevents.Serializable
+msg := &ednaevents.ProducerEvent{
+		ID:       "",
+		EntityID: "",
+		Payload:  obj,
+	}
+partition, offset, err := producer.Produce(msg)
+if err != nil {
+    return err
+}
+
+log.Infof("written, partition: %d, offset: %d", partition, offset)
+```
+### Producing events synchronously
+When producing events asynchronously, events to be written are communicated via channel.
+```
+import (
+    context
+    ednaevents "github.com/3lvia/edna-cloudevents-go"
+)
+
+ctx := context.Background()
+
+config, err := edna.ConfigFromEnvVars()
+if err != nil {
+	log.Fatal(err)
+}
+
+producerChannel := make(chan *ednaevents.ProducerEvent)
+// Start edna producer in separate go routine
+edna.StartProducer(
+	ctx,
+	producerChannel,
+	ednaevents.WithConfig(config))
+	
+// The channel producerChannel can now be used to send events to be enqueued.
+```
+### Consuming events directly
+When consuming events "directly", a consumer group is not used. This means that all events that currently available
+are received.
+```
+import (
+    context
+    ednaevents "github.com/3lvia/edna-cloudevents-go"
+)
+
+ctx := context.Background()
+
+config, err := edna.ConfigFromEnvVars()
+if err != nil {
+	log.Fatal(err)
+}
+
+producedEventsChannel := make(chan *ednaevents.ConsumerEvent)
+ednaevents.StartDirectConsumer(
+    ctx,
+    producedEventsChannel,
+    ednaevents.WithConfig(config)) 
+    
+go func() {
+    for {
+        ev := <- producedEventsChannel
+        // handle received event
+    }
+}()
+```
+### Consuming events with consumer group
+When consuming events with a consumer group, the internal Kafka functionality handles and stores the current high
+watermark offset. This means that only events that have not previously been seen are received upon startup.
+
+In cases where the topic has multiple partitions, the internal Kafka functionality is able to balance consuming
+automatically if more than one service with the same group ID is started.
+
+```
+import (
+    context
+    ednaevents "github.com/3lvia/edna-cloudevents-go"
+)
+
+ctx := context.Background()
+
+config, err := edna.ConfigFromEnvVars()
+if err != nil {
+	log.Fatal(err)
+}
+
+producedEventsChannel := make(chan *ednaevents.ConsumerEvent)
+ednaevents.StartGroupedConsumer(
+    ctx,
+    producedEventsChannel,
+    ednaevents.WithConfig(config)) 
+    
+go func() {
+    for {
+        ev := <- producedEventsChannel
+        // handle received event
+    }
+}()
+```
 
 ## Metrics
 ### Metrics for producer
