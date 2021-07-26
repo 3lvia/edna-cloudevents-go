@@ -40,7 +40,7 @@ if err != nil {
     log.Fatal(err)
 }
 
-p, err := ednaevents.NewSyncProducer(config)
+producer, err := ednaevents.NewSyncProducer(config)
 if err != nil {
     log.Fatal(err)
 }
