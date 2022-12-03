@@ -2,11 +2,9 @@ package ednaevents
 
 import (
 	"context"
-	"fmt"
 	"github.com/Shopify/sarama"
-	"github.com/prometheus/common/log"
+	"log"
 	"sync"
-	"time"
 )
 
 type groupedConsumer struct {
@@ -16,7 +14,7 @@ type groupedConsumer struct {
 }
 
 func (p *groupedConsumer) init(ctx context.Context) (func(), error) {
-	log.Infoln("kafka init...")
+	log.Print("kafka init...")
 
 	err := p.config.loadConsumerGroup()
 	if err != nil {
@@ -26,8 +24,7 @@ func (p *groupedConsumer) init(ctx context.Context) (func(), error) {
 	config := kafkaConfig(p.config)
 
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange // partition allocation strategy
-	config.Consumer.Offsets.Initial = -2 // Where to start consumption when no group consumption displacement is found
-
+	config.Consumer.Offsets.Initial = -2                                   // Where to start consumption when no group consumption displacement is found
 
 	ctx, cancel := context.WithCancel(ctx)
 	client, err := sarama.NewConsumerGroup([]string{p.config.Broker}, p.config.GroupID, config)
@@ -48,21 +45,21 @@ func (p *groupedConsumer) init(ctx context.Context) (func(), error) {
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if ctx.Err() != nil {
-				log.Error(ctx.Err())
+				log.Printf("kafka consumer stopped, %v", ctx.Err())
 				return
 			}
 			p.ready = make(chan bool)
 		}
 	}()
 	<-p.ready
-	log.Infoln("Sarama consumer up and running!...")
+	log.Printf("Sarama consumer up and running!...")
 	// Ensure that the message in the channel is consumed when the system exits
 	f := func() {
-		log.Info("kafka close")
+		log.Printf("kafka close")
 		cancel()
 		wg.Wait()
 		if err = client.Close(); err != nil {
-			log.Errorf("Error closing client: %v", err)
+			log.Printf("kafka close error, %v", err)
 		}
 	}
 
@@ -94,10 +91,9 @@ func (p *groupedConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		p.ch <- ce
 		session.MarkMessage(message, "")
 
-		partition := claim.Partition()
-		labels := map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)}
-		metrics.incCounter(metricCountReceived, labels)
+		//partition := claim.Partition()
+		//labels := map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)}
+		//metrics.incCounter(metricCountReceived, labels)
 	}
 	return nil
 }
-

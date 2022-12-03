@@ -2,36 +2,34 @@ package ednaevents
 
 import (
 	"context"
-	"fmt"
 	"github.com/Shopify/sarama"
-	"github.com/prometheus/common/log"
-	"time"
+	"log"
 )
 
 const metricCountReceived = "kafka_received"
 
 type consumer struct {
-	config      *Config
-	consumer    sarama.Consumer
+	config   *Config
+	consumer sarama.Consumer
 }
 
 func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 	cnsmr, err := c.getConsumer()
 	if err != nil {
-		log.Error(err)
+		log.Printf("error getting consumer: %v", err)
 		return
 	}
 
 	topic := c.config.Topic
 	partitions, err := cnsmr.Partitions(topic)
 	if err != nil {
-		log.Error(err)
+		log.Printf("error getting partitions: %v", err)
 		return
 	}
 
 	hwm := cnsmr.HighWaterMarks()
 	if _, ok := hwm[topic]; !ok {
-		log.Infof("no_highwatermarks, topic: %s", topic)
+		log.Printf("error getting high water mark: %v", err)
 	}
 
 	for _, partition := range partitions {
@@ -46,21 +44,21 @@ func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 }
 
 func consumePartition(cons sarama.Consumer, topic string, partition int32, offset int64, ch chan<- *ConsumerEvent) {
-	log.Infof("partition_consumer_start, parition: %d, offset: %d", partition, offset)
+	log.Printf("partition_consumer_start, parition: %d, offset: %d", partition, offset)
 
 	pConsumer, err := cons.ConsumePartition(topic, partition, offset)
 	if err != nil {
-		log.Error(err)
+		log.Printf("error consuming partition: %v", err)
 		return
 	}
 
 	messages := pConsumer.Messages()
 	for {
-		m := <- messages
+		m := <-messages
 		ch <- consumerEvent(m)
 
-		labels := map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)}
-		metrics.incCounter(metricCountReceived, labels)
+		//labels := map[string]string{"day": dayKey(time.Now().UTC()), "partition": fmt.Sprintf("%d", partition)}
+		//metrics.incCounter(metricCountReceived, labels)
 	}
 }
 
@@ -71,8 +69,8 @@ func consumerEvent(m *sarama.ConsumerMessage) *ConsumerEvent {
 	}
 
 	return &ConsumerEvent{
-		Value:        m.Value,
-		Headers:      headers,
+		Value:   m.Value,
+		Headers: headers,
 		Metadata: KafkaMetadata{
 			Key:            m.Key,
 			Topic:          m.Topic,

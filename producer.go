@@ -5,7 +5,7 @@ import (
 	"context"
 	"github.com/Shopify/sarama"
 	"github.com/google/uuid"
-	"github.com/prometheus/common/log"
+	"log"
 	"time"
 )
 
@@ -55,16 +55,16 @@ func (p *producer) Produce(e *ProducerEvent) (partition int32, offset int64, err
 func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 	producer, err := p.asyncProducer()
 	if err != nil {
-		log.Error(err)
+		log.Printf("failed to start producer: %v", err)
 		return
 	}
 	defer producer.Close()
 
-	go func(successes <-chan *sarama.ProducerMessage){
+	go func(successes <-chan *sarama.ProducerMessage) {
 		for {
-			success := <- successes
+			success := <-successes
 			_ = success
-			metrics.incCounter(metricCountDelivered, map[string]string{"day": dayKey(time.Now().UTC())})
+			//metrics.incCounter(metricCountDelivered, map[string]string{"day": dayKey(time.Now().UTC())})
 		}
 	}(producer.Successes())
 
@@ -74,7 +74,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 		mBytes, key, headers, err := p.message(obj)
 		if err != nil {
-			log.Error(err)
+			log.Printf("failed to serialize message: %v", err)
 			continue
 		}
 
@@ -87,7 +87,7 @@ func (p *producer) start(ctx context.Context, ch <-chan *ProducerEvent) {
 
 		input <- m
 
-		metrics.incCounter(metricCountAttempted, map[string]string{"day": dayKey(time.Now().UTC())})
+		//metrics.incCounter(metricCountAttempted, map[string]string{"day": dayKey(time.Now().UTC())})
 	}
 }
 
@@ -111,7 +111,7 @@ func (p *producer) asyncProducer() (sarama.AsyncProducer, error) {
 
 	producer, err := sarama.NewAsyncProducer([]string{p.config.Broker}, saramaConfig)
 	if err != nil {
-		log.Error()
+		log.Printf("failed to create producer: %v", err)
 		return nil, err
 	}
 

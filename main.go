@@ -2,7 +2,7 @@ package ednaevents
 
 import (
 	"context"
-	"github.com/prometheus/common/log"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,12 +17,12 @@ func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option
 	c := collector.config
 	err := c.loadProducer()
 	if err != nil {
-		log.Error(err)
+		log.Printf("error loading producer: %v", err)
 		return
 	}
 
 	p := &producer{
-		config:          c,
+		config: c,
 	}
 
 	go p.start(ctx, ch)
@@ -49,7 +49,7 @@ func StartGroupedConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ..
 		signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 		select {
 		case <-sigterm:
-			log.Warnln("terminating: via signal")
+			log.Print("terminating: via signal")
 		}
 
 		f()
@@ -67,12 +67,12 @@ func StartDirectConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...
 	conf := collector.config
 	err := conf.loadConsumer()
 	if err != nil {
-		log.Error(err)
+		log.Printf("error loading consumer: %v", err)
 		return
 	}
 
 	c := &consumer{
-		config:      conf,
+		config: conf,
 	}
 
 	go c.start(ctx, ch)
