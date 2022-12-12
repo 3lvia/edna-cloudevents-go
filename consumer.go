@@ -14,22 +14,23 @@ type consumer struct {
 }
 
 func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
-	cnsmr, err := c.getConsumer()
+	saramaConsumer, err := c.getConsumer()
 	if err != nil {
 		log.Printf("error getting consumer: %v", err)
 		return
 	}
 
 	topic := c.config.Topic
-	partitions, err := cnsmr.Partitions(topic)
+	partitions, err := saramaConsumer.Partitions(topic)
 	if err != nil {
 		log.Printf("error getting partitions: %v", err)
 		return
 	}
 
-	hwm := cnsmr.HighWaterMarks()
+	hwm := saramaConsumer.HighWaterMarks()
 	if _, ok := hwm[topic]; !ok {
-		log.Printf("error getting high water mark: %v", err)
+		//log.Printf("error getting high water mark: %v", err)
+		//hwm[topic] = map[int32]int64{0: 1065969}
 	}
 
 	for _, partition := range partitions {
@@ -39,12 +40,12 @@ func (c *consumer) start(ctx context.Context, ch chan<- *ConsumerEvent) {
 				offset = o
 			}
 		}
-		go consumePartition(cnsmr, topic, partition, offset, ch)
+		go consumePartition(saramaConsumer, topic, partition, offset, ch)
 	}
 }
 
 func consumePartition(cons sarama.Consumer, topic string, partition int32, offset int64, ch chan<- *ConsumerEvent) {
-	log.Printf("partition_consumer_start, parition: %d, offset: %d", partition, offset)
+	log.Printf("partition_consumer_start, partition: %d, offset: %d", partition, offset)
 
 	pConsumer, err := cons.ConsumePartition(topic, partition, offset)
 	if err != nil {
@@ -90,9 +91,9 @@ func (c *consumer) getConsumer() (sarama.Consumer, error) {
 	saramaConfig := kafkaConfig(c.config)
 	saramaConfig.Consumer.Offsets.AutoCommit.Enable = true
 
-	consumer, err := sarama.NewConsumer([]string{c.config.Broker}, saramaConfig)
+	cn, err := sarama.NewConsumer([]string{c.config.Broker}, saramaConfig)
 	if err != nil {
 		return nil, err
 	}
-	return consumer, nil
+	return cn, nil
 }

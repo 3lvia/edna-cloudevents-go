@@ -3,6 +3,7 @@ module github.com/3lvia/edna-cloudevents-go
 go 1.16
 
 require (
+	github.com/3lvia/telemetry-go v1.0.2 // indirect
 	github.com/Shopify/sarama v1.29.1
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.2.0

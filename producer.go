@@ -6,6 +6,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/google/uuid"
 	"log"
+	"os"
 	"time"
 )
 
@@ -16,6 +17,7 @@ const (
 	signaledDateFormat = "2006-01-02"
 )
 
+// NewSyncProducer creates a new SyncProducer using the given broker addresses and configuration.
 func NewSyncProducer(config *Config) (ProducerService, error) {
 	p, err := syncProducer(config)
 	if err != nil {
@@ -158,7 +160,9 @@ func kafkaConfig(config *Config) *sarama.Config {
 
 	saramaConfig.Net.TLS.Enable = true
 
-	//sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+	if config.Verbose {
+		sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+	}
 
 	return saramaConfig
 }

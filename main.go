@@ -1,3 +1,4 @@
+// Package ednaevents provides a simple interface for producing and consuming events from Kafka.
 package ednaevents
 
 import (
@@ -8,6 +9,7 @@ import (
 	"syscall"
 )
 
+// StartProducer starts a producer that can be used to send events to Kafka.
 func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
@@ -28,8 +30,11 @@ func StartProducer(ctx context.Context, ch <-chan *ProducerEvent, opts ...Option
 	go p.start(ctx, ch)
 }
 
-func StartGroupedConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...Option) {
-	go func() {
+// StartGroupedConsumer starts a consumer that supports consumer groups and offsets, meaning that the central Kafka
+// cluster will keep track of which events have been consumed and which have not.
+func StartGroupedConsumer(ctx context.Context, opts ...Option) <-chan *ConsumerEvent {
+	channel := make(chan *ConsumerEvent)
+	go func(ch chan<- *ConsumerEvent) {
 		collector := &OptionsCollector{}
 		for _, opt := range opts {
 			opt(collector)
@@ -53,12 +58,14 @@ func StartGroupedConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ..
 		}
 
 		f()
-	}()
+	}(channel)
+
+	return channel
 }
 
 // StartDirectConsumer starts a consumer without support for consumer groups or offsets, meaning that all events
-// fra the earliest existing offset are returned.
-func StartDirectConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...Option) {
+// from the earliest existing offset are returned.
+func StartDirectConsumer(ctx context.Context, opts ...Option) (<-chan *ConsumerEvent, error) {
 	collector := &OptionsCollector{}
 	for _, opt := range opts {
 		opt(collector)
@@ -67,13 +74,16 @@ func StartDirectConsumer(ctx context.Context, ch chan<- *ConsumerEvent, opts ...
 	conf := collector.config
 	err := conf.loadConsumer()
 	if err != nil {
-		log.Printf("error loading consumer: %v", err)
-		return
+		return nil, err
 	}
 
 	c := &consumer{
 		config: conf,
 	}
 
+	ch := make(chan *ConsumerEvent)
+
 	go c.start(ctx, ch)
+
+	return ch, nil
 }
