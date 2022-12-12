@@ -70,10 +70,10 @@ func setEnv() {
 	os.Setenv("KAFKA_BROKER", "pkc-lq8gm.westeurope.azure.confluent.cloud:9092")
 	os.Setenv("KAFKA_TOPIC", "public.msi.msim.meteringpoint_versions_latest_includeinvalid")
 	os.Setenv("KAFKA_USER", "HD7H5I7PBPLM35W2")
-	os.Setenv("KAFKA_PASSWORD", "VhHDh2m0lPBWa7oxLCgm5aSUcyLbu1Dz021ZJ+HJDApdQbSDBbvsx8FqR0rcqOex")
+	os.Setenv("KAFKA_PASSWORD", "SECRET")
 	os.Setenv("KAFKA_SCHEMA_ENDPOINT", "https://psrc-j39np.westeurope.azure.confluent.cloud")
 	os.Setenv("KAFKA_SCHEMA_USER", "PYLKNYM44JYVIA65")
-	os.Setenv("KAFKA_SCHEMA_PASSWORD", "6XPukppIAZIuL9zLb+zFUfdJtH3B9Y+MDRBdWa+DlO0E9N67oA+A5VoCDr/xEWny")
+	os.Setenv("KAFKA_SCHEMA_PASSWORD", "SECRET")
 	os.Setenv("KAFKA_SCHEMA_ID", "public.msi.msim.meteringpoint_versions_latest_includeinvalid-value")
 	os.Setenv("TYPE", "")
 }
