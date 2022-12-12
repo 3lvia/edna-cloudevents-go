@@ -30,21 +30,43 @@ type ProducerEvent struct {
 	Payload Serializable
 }
 
+// ConsumerEvent wraps an object that was consumed from a topic.
 type ConsumerEvent struct {
-	Value    []byte
-	Headers  map[string]string
+	// Value is the payload of the actual message as it was put onto Kafka by the producer.
+	Value []byte
+
+	// Headers are the headers of the message as it was put onto Kafka by the producer.
+	Headers map[string]string
+
+	// Metadata contains Kafka-related metadata of the message.
 	Metadata KafkaMetadata
 }
 
+// KafkaMetadata contains Kafka-related metadata of a message.
 type KafkaMetadata struct {
-	Key            []byte
-	Topic          string
-	Partition      int32
-	Offset         int64
-	Timestamp      time.Time
+	// Key is the key of the message as it was put onto Kafka by the producer. If the topic is compacted, messages are
+	// grouped by key and only the last message for a given key is kept. This value is used as the property 'subject' of
+	// the cloudevents event.
+	Key []byte
+
+	// Topic is the topic the message was dequeued from.
+	Topic string
+
+	// Partition is the partition the message was dequeued from.
+	Partition int32
+
+	// Offset is the offset of the message within the partition.
+	Offset int64
+
+	// Timestamp is the time when the message was put onto Kafka by the producer.
+	Timestamp time.Time
+
+	// BlockTimestamp is the time when the message was dequeued from Kafka.
 	BlockTimestamp time.Time
 }
 
+// ProducerService is the interface for a service that can produce events.
 type ProducerService interface {
+	// Produce produces an event on the given topic.
 	Produce(m *ProducerEvent) (partition int32, offset int64, err error)
 }

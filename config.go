@@ -7,8 +7,7 @@ import (
 
 func ConfigFromEnvVars() (*Config, error) {
 	c := &Config{}
-	err := c.load()
-	if err != nil {
+	if err := c.load(); err != nil {
 		return nil, err
 	}
 	return c, nil
@@ -26,7 +25,7 @@ type Config struct {
 	// Topic to produce or consume from
 	Topic string
 
-	// GroupID used by the cosumer
+	// GroupID used by the consumer
 	GroupID string
 
 	// Username is the username used in order to authenticate against Confluent Kafka.
@@ -44,6 +43,9 @@ type Config struct {
 	// the cloudevents event. The general recommended pattern for Elvia is no.elvia.[DOMAIN].[TYPE]. Example:
 	// no.elvia.msi.meteringpointversion
 	Type string
+
+	// Verbose enables verbose logging for the underlying Kafka client.
+	Verbose bool
 }
 
 // load loads this instance with values from environment variables.
